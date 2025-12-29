@@ -1,77 +1,100 @@
 #include <iostream>
 #include <string>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
-// === CARA 1: PAKAI LOOPING (ITERATIF) ===
-int hitungPakaiLooping(string teks) {
-    int jumlahKata = 0;
-    int totalHuruf = teks.length(); // Hitung ada berapa huruf totalnya
-    bool lagiBacaKata = false;      // Penanda: kita lagi baca kata atau spasi?
+// ================= ITERATIF =================
+// Pakai const string& biar hemat memori (tidak copy string)
+int countWordsIterative(const string& text) {
+    int count = 0;
+    bool inWord = false;
 
-    // Cek huruf satu per satu dari awal sampai akhir
-    for (int i = 0; i < totalHuruf; i++) {
-        
-        // Kalau hurufnya BUKAN spasi
-        if (teks[i] != ' ') {
-            // Dan sebelumnya kita tidak sedang baca kata (berarti ini kata baru)
-            if (lagiBacaKata == false) {
-                jumlahKata = jumlahKata + 1; // Tambah hitungan
-                lagiBacaKata = true;         // Tandai kita lagi baca kata
-            }
+    for (int i = 0; i < text.length(); i++) {
+        if (text[i] != ' ' && !inWord) {
+            count++;
+            inWord = true;
         } 
-        // Kalau ketemu spasi
-        else {
-            lagiBacaKata = false; // Reset penanda
+        else if (text[i] == ' ') {
+            inWord = false;
         }
     }
-    return jumlahKata;
+    return count;
 }
 
-// === CARA 2: PAKAI FUNGSI SENDIRI (REKURSIF) ===
-int hitungPakaiRekursif(string teks, int posisi, bool lagiBacaKata) {
-    int totalHuruf = teks.length();
-
-    // Syarat Berhenti: Kalau posisi sudah lewat huruf terakhir
-    if (posisi == totalHuruf) {
+// ================= REKURSIF =================
+// WAJIB pakai const string&. Kalau tidak, memori akan meledak di input panjang.
+int countWordsRecursive(const string& text, int index, bool inWord) {
+    // Base Case: Jika index sudah di ujung string
+    if (index == text.length())
         return 0;
+
+    // Recursive Step
+    if (text[index] != ' ' && !inWord) {
+        // Ketemu kata baru, tambah 1, lanjut rekursif dengan status inWord=true
+        return 1 + countWordsRecursive(text, index + 1, true);
     }
-
-    int tambahan = 0;
-    bool statusBerikutnya = lagiBacaKata;
-
-    // Cek huruf di posisi sekarang
-    if (teks[posisi] != ' ') {
-        if (lagiBacaKata == false) {
-            tambahan = 1;           // Nemu kata baru!
-            statusBerikutnya = true;
-        }
-    } else {
-        statusBerikutnya = false;   // Nemu spasi
+    else if (text[index] == ' ') {
+        // Ketemu spasi, lanjut rekursif dengan status inWord=false
+        return countWordsRecursive(text, index + 1, false);
     }
-
-    // Panggil diri sendiri buat cek huruf di depannya (posisi + 1)
-    return tambahan + hitungPakaiRekursif(teks, posisi + 1, statusBerikutnya);
+    else {
+        // Masih di dalam kata yang sama, lanjut rekursif status tetap true
+        return countWordsRecursive(text, index + 1, true);
+    }
 }
 
-// === PROGRAM UTAMA ===
+// ================= MAIN =================
 int main() {
-    string pesan;
+    string message;
+    int choice;
+    long long result = 0; // Ubah ke long long jaga-jaga hasil besar (opsional)
 
-    cout << "=== PROGRAM PENGHITUNG KATA ===" << endl;
-    cout << "Ketik kalimat kamu di bawah ini:" << endl;
-    
-    // Perintah untuk input kalimat dengan spasi
-    getline(cin, pesan); 
+    cout << "=== PROGRAM PENGHITUNG KATA + TIMER ===" << endl;
+    cout << "Pilih metode algoritma:" << endl;
+    cout << "1. Iteratif (Looping)" << endl;
+    cout << "2. Rekursif (Divide & Conquer)" << endl;
+    cout << "Masukan pilihan (1/2): ";
+    cin >> choice;
 
-    cout << "\n-----------------------------" << endl;
-    
-    // Langsung jalankan keduanya
-    int hasil1 = hitungPakaiLooping(pesan);
-    int hasil2 = hitungPakaiRekursif(pesan, 0, false);
+    cin.ignore(); // Membersihkan buffer enter
 
-    cout << "Hasil Cara Looping  : " << hasil1 << " kata" << endl;
-    cout << "Hasil Cara Rekursif : " << hasil2 << " kata" << endl;
+    cout << "\nMasukkan pesan chat: ";
+    getline(cin, message);
+
+    // --- MULAI TIMER ---
+    auto start = high_resolution_clock::now(); 
+
+    // Eksekusi Fungsi
+    if (choice == 1) {
+        cout << "\n[Mode: ITERATIF] Sedang menghitung..." << endl;
+        result = countWordsIterative(message);
+    } 
+    else if (choice == 2) {
+        cout << "\n[Mode: REKURSIF] Sedang menghitung..." << endl;
+        // Penanganan stack overflow sederhana (opsional tapi bagus buat laporan)
+        if (message.length() > 5000) {
+            cout << "WARNING: Input terlalu panjang untuk Rekursif, risiko Stack Overflow!" << endl;
+        }
+        result = countWordsRecursive(message, 0, false);
+    } 
+    else {
+        cout << "\nPilihan tidak valid!" << endl;
+        return 1;
+    }
+
+    // --- STOP TIMER ---
+    auto stop = high_resolution_clock::now();
+
+    // Hitung durasi (selisih stop - start) dalam satuan mikrodethik
+    auto duration = duration_cast<microseconds>(stop - start);
+
+    // Tampilkan Hasil
+    cout << "-----------------------------" << endl;
+    cout << "Panjang Teks          : " << message.length() << " karakter" << endl;
+    cout << "Jumlah kata ditemukan : " << result << endl;
+    cout << "Waktu Eksekusi        : " << duration.count() << " mikrodethik" << endl;
     cout << "-----------------------------" << endl;
 
     return 0;
